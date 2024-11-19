@@ -1,58 +1,40 @@
 import * as React from 'react';
-import { useTheme } from '@mui/material/styles';
-import Fuse from 'fuse.js';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableFooter,
-  TablePagination,
-  TableRow,
-  Paper,
-  IconButton,
+import { 
+  Box, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper, 
+  IconButton, 
+  TablePagination, 
   Button,
+  Skeleton,
+  useTheme,
+  Typography,
   TextField,
-  TableHead,
+  InputAdornment
 } from '@mui/material';
-import {
-  FirstPage as FirstPageIcon,
-  KeyboardArrowLeft,
+import { 
+  KeyboardArrowLeft, 
   KeyboardArrowRight,
+  FirstPage as FirstPageIcon,
   LastPage as LastPageIcon,
+  AddShoppingCart,
+  Search as SearchIcon
 } from '@mui/icons-material';
-
-const fuseOptions = {
-	// isCaseSensitive: false,
-	// includeScore: false,
-	// shouldSort: true,
-	// includeMatches: false,
-	// findAllMatches: false,
-	// minMatchCharLength: 1,
-	// location: 0,
-	// threshold: 0.6,
-	// distance: 100,
-	// useExtendedSearch: false,
-	// ignoreLocation: false,
-	// ignoreFieldNorm: false,
-	// fieldNormWeight: 1,
-	keys: [
-		"name",
-		// "author.firstName"
-	]
-};
-
-
+import { useProducts } from '../hooks/useProducts';
+import { useSearch } from '../hooks/useSearch';
+import { usePagination } from '../hooks/usePagination';
+import { useCart } from '../hooks/useCart';
 
 interface TablePaginationActionsProps {
   count: number;
   page: number;
   rowsPerPage: number;
-  onPageChange: (
-    event: React.MouseEvent<HTMLButtonElement>,
-    newPage: number,
-  ) => void;
+  onPageChange: (event: React.MouseEvent<HTMLButtonElement>, newPage: number) => void;
 }
 
 function TablePaginationActions(props: TablePaginationActionsProps) {
@@ -77,136 +59,210 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 
   return (
     <Box sx={{ flexShrink: 0, ml: 2.5 }}>
-      <IconButton onClick={handleFirstPageButtonClick} disabled={page === 0}>
+      <IconButton
+        onClick={handleFirstPageButtonClick}
+        disabled={page === 0}
+        aria-label="first page"
+      >
         {theme.direction === 'rtl' ? <LastPageIcon /> : <FirstPageIcon />}
       </IconButton>
-      <IconButton onClick={handleBackButtonClick} disabled={page === 0}>
+      <IconButton
+        onClick={handleBackButtonClick}
+        disabled={page === 0}
+        aria-label="previous page"
+      >
         {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
       </IconButton>
-      <IconButton onClick={handleNextButtonClick} disabled={page >= Math.ceil(count / rowsPerPage) - 1}>
+      <IconButton
+        onClick={handleNextButtonClick}
+        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
+        aria-label="next page"
+      >
         {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
       </IconButton>
-      <IconButton onClick={handleLastPageButtonClick} disabled={page >= Math.ceil(count / rowsPerPage) - 1}>
+      <IconButton
+        onClick={handleLastPageButtonClick}
+        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
+        aria-label="last page"
+      >
         {theme.direction === 'rtl' ? <FirstPageIcon /> : <LastPageIcon />}
       </IconButton>
     </Box>
   );
 }
 
-function createData(name: string, calories: number, fat: number) {
-  return { name, calories, fat };
-}
-
-const rows = [
-  createData('Cupcake', 305, 3.7),
-  createData('Donut', 452, 25.0),
-  createData('Eclair', 262, 16.0),
-  createData('Frozen yoghurt', 159, 6.0),
-  createData('Gingerbread', 356, 16.0),
-  createData('Honeycomb', 408, 3.2),
-  createData('Ice cream sandwich', 237, 9.0),
-  createData('Jelly Bean', 375, 0.0),
-  createData('KitKat', 518, 26.0),
-  createData('Lollipop', 392, 0.2),
-  createData('Marshmallow', 318, 0),
-  createData('Nougat', 360, 19.0),
-  createData('Oreo', 437, 18.0),
-].sort((a, b) => (a.calories < b.calories ? -1 : 1));
-
 export default function CustomPaginationActionsTable() {
-  const [searched, setSearched] = React.useState("");
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortedResult, setSortedResult] = React.useState<any[]>([]);
+  const theme = useTheme();
+  const { products, loading } = useProducts();
+  const { searchQuery, setSearchQuery, searchResults } = useSearch(products, ['title', 'brand', 'category']);
+  const { page, rowsPerPage, handleChangePage, handleChangeRowsPerPage, getPaginatedItems } = usePagination();
+  const { addToCart } = useCart();
 
-  const fuse = new Fuse(rows, fuseOptions);
-
-  const handleAddToCart = (item) => {
-    const currentCart = JSON.parse(localStorage.getItem('cart')) || [];
-    currentCart.push(item);
-    localStorage.setItem('cart', JSON.stringify(currentCart));
-    alert(`${item.name} has been added to your cart!`);
-  };
-
-  const handleSearch = (searchText: string) => {
-    setSearched(searchText);
-    const results = searchText ? fuse.search(searchText).map((result) => result.item) : [];
-    setSortedResult(results);
-  };
-
-  const displayedRows = searched ? sortedResult : rows;
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - displayedRows.length) : 0;
-
-  const handleChangePage = (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  if (loading) {
+    return (
+      <Box>
+        <Skeleton 
+          variant="rectangular" 
+          height={56} 
+          sx={{ mb: 2, borderRadius: 1 }} 
+        />
+        <TableContainer>
+          {[...Array(5)].map((_, index) => (
+            <Skeleton 
+              key={index}
+              variant="rectangular"
+              height={53}
+              sx={{ mb: 1, borderRadius: 1 }}
+            />
+          ))}
+        </TableContainer>
+      </Box>
+    );
+  }
 
   return (
-    <TableContainer component={Paper} sx={{ maxWidth: 700, mx: 'auto', mt: 4, boxShadow: 4, borderRadius: 2 }}>
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Box>
+      {/* Search Bar */}
+      <Box sx={{ mb: 3 }}>
         <TextField
-          label="Search Item"
+          fullWidth
           variant="outlined"
-          size="small"
-          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search by product name, brand, or category..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              bgcolor: 'background.paper',
+              '&:hover': {
+                '& > fieldset': {
+                  borderColor: theme.palette.primary.main,
+                },
+              },
+            },
+          }}
         />
       </Box>
-      <Table sx={{ minWidth: 500 }} aria-label="custom pagination table">
-        <TableHead>
-          <TableRow sx={{ backgroundColor: 'primary.main', color: 'white' }}>
-            <TableCell sx={{ color: 'white' }}>Item</TableCell>
-            <TableCell align="right" sx={{ color: 'white' }}>Calories</TableCell>
-            <TableCell align="right" sx={{ color: 'white' }}>Fat (g)</TableCell>
-            <TableCell align="center" sx={{ color: 'white' }}>Action</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {(rowsPerPage > 0
-            ? displayedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-            : displayedRows
-          ).map((row) => (
-            <TableRow key={row.name} hover>
-              <TableCell component="th" scope="row">{row.name}</TableCell>
-              <TableCell align="right">{row.calories}</TableCell>
-              <TableCell align="right">{row.fat}</TableCell>
-              <TableCell align="center">
-                <Button variant="contained" color="secondary" onClick={()=>{
-                  handleAddToCart(row);
-                }}>Add to Cart</Button>
-              </TableCell>
+
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          boxShadow: 'none',
+          borderRadius: 2,
+          overflow: 'hidden'
+        }}
+      >
+        <Table sx={{ minWidth: 500 }} aria-label="custom pagination table">
+          <TableHead>
+            <TableRow sx={{ bgcolor: theme.palette.grey[50] }}>
+              <TableCell sx={{ fontWeight: 600 }}>Product</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Brand</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Category</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Price ($)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Rating</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Stock</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Action</TableCell>
             </TableRow>
-          ))}
-          {emptyRows > 0 && (
-            <TableRow style={{ height: 53 * emptyRows }}>
-              <TableCell colSpan={6} />
-            </TableRow>
-          )}
-        </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
-              colSpan={4}
-              count={displayedRows.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              SelectProps={{
-                inputProps: { 'aria-label': 'rows per page' },
-                native: true,
-              }}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              ActionsComponent={TablePaginationActions}
-            />
-          </TableRow>
-        </TableFooter>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {getPaginatedItems(searchResults).map((product) => (
+              <TableRow 
+                key={product.id}
+                sx={{ 
+                  '&:hover': { 
+                    bgcolor: theme.palette.action.hover 
+                  }
+                }}
+              >
+                <TableCell component="th" scope="row">
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {product.title}
+                  </Typography>
+                </TableCell>
+                <TableCell align="right">{product.brand}</TableCell>
+                <TableCell align="right">
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      bgcolor: theme.palette.primary.light,
+                      color: theme.palette.primary.main,
+                      py: 0.5,
+                      px: 1.5,
+                      borderRadius: 1,
+                      display: 'inline-block'
+                    }}
+                  >
+                    {product.category}
+                  </Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    ${product.price}
+                  </Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Box sx={{ color: 'gold', display: 'inline-flex', alignItems: 'center' }}>
+                    {product.rating} ★
+                  </Box>
+                </TableCell>
+                <TableCell align="right">{product.stock}</TableCell>
+                <TableCell align="right">
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={() => addToCart(product)}
+                    startIcon={<AddShoppingCart />}
+                    sx={{ 
+                      textTransform: 'none',
+                      borderRadius: 1.5
+                    }}
+                  >
+                    Add
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            
+            {searchResults.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No products found matching your search
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+          colSpan={3}
+          count={searchResults.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          SelectProps={{
+            inputProps: {
+              'aria-label': 'rows per page',
+            },
+            native: true,
+          }}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          ActionsComponent={TablePaginationActions}
+          sx={{
+            borderTop: `1px solid ${theme.palette.divider}`,
+            bgcolor: theme.palette.grey[50]
+          }}
+        />
+      </TableContainer>
+    </Box>
   );
 }
 

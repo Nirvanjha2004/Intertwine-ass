@@ -1,17 +1,34 @@
 import * as React from 'react';
-import { Box, Button, Card, CardContent, Typography, Divider, IconButton, TextField, InputAdornment } from '@mui/material';
+import { Box, Button, Card, CardContent, Typography, Divider, IconButton, TextField } from '@mui/material';
 import { RemoveShoppingCart, Add, Remove } from '@mui/icons-material';
 
-const cartItems = [
-  { id: 1, name: 'Cupcake', calories: 305, fat: 3.7, quantity: 2, price: 5.5 },
-  { id: 2, name: 'Donut', calories: 452, fat: 25.0, quantity: 1, price: 2.0 },
-  { id: 3, name: 'Eclair', calories: 262, fat: 16.0, quantity: 3, price: 3.5 },
-  // Add more items as needed
-];
+interface CartItem {
+  id: number;
+  title: string;
+  price: number;
+  rating: number;
+  quantity: number;
+  brand: string;
+  category: string;
+}
 
 export default function Cart() {
-  const [items, setItems] = React.useState(cartItems);
+  const [items, setItems] = React.useState<CartItem[]>([]);
   const [search, setSearch] = React.useState('');
+
+  // Load cart items from localStorage
+  React.useEffect(() => {
+    const storedItems = localStorage.getItem('cartItems');
+    if (storedItems) {
+      setItems(JSON.parse(storedItems));
+    }
+  }, []);
+
+  // Update localStorage whenever items change
+  const updateLocalStorage = (newItems: CartItem[]) => {
+    localStorage.setItem('cartItems', JSON.stringify(newItems));
+    setItems(newItems);
+  };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
@@ -22,93 +39,199 @@ export default function Cart() {
   };
 
   const handleRemoveItem = (id: number) => {
-    setItems(items.filter(item => item.id !== id));
+    const newItems = items.filter(item => item.id !== id);
+    updateLocalStorage(newItems);
   };
 
   const handleIncreaseQuantity = (id: number) => {
-    setItems(items.map(item => 
+    const newItems = items.map(item => 
       item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-    ));
+    );
+    updateLocalStorage(newItems);
   };
 
   const handleDecreaseQuantity = (id: number) => {
-    setItems(items.map(item => 
+    const newItems = items.map(item => 
       item.id === id && item.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : item
-    ));
+    );
+    updateLocalStorage(newItems);
   };
 
   const handleClearCart = () => {
+    localStorage.removeItem('cartItems');
     setItems([]);
   };
 
+  const renderQualityStars = (rating: number) => {
+    const stars = Math.round(rating);
+    return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+  };
+
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4, boxShadow: 4, borderRadius: 2, padding: 2 }}>
-      {/* Search Input */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 500 }}>Shopping Cart</Typography>
+    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3 
+      }}>
         <TextField
-          label="Search Item"
+          label="Search Items"
           variant="outlined"
           size="small"
           value={search}
           onChange={handleSearchChange}
-          sx={{ width: '40%' }}
+          sx={{ width: '300px' }}
         />
       </Box>
 
-      {/* Cart Items */}
-      <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
-        {items.filter(item => item.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
-          <Card key={item.id} sx={{ mb: 2, boxShadow: 2, borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>{item.name}</Typography>
-                <IconButton color="error" onClick={() => handleRemoveItem(item.id)}>
-                  <RemoveShoppingCart />
-                </IconButton>
-              </Box>
-              <Typography variant="body2">Calories: {item.calories}</Typography>
-              <Typography variant="body2">Fat: {item.fat} g</Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                {/* Quantity Controls */}
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <IconButton onClick={() => handleDecreaseQuantity(item.id)} disabled={item.quantity === 1}>
-                    <Remove />
-                  </IconButton>
-                  <Typography variant="body2">{item.quantity}</Typography>
-                  <IconButton onClick={() => handleIncreaseQuantity(item.id)}>
-                    <Add />
-                  </IconButton>
-                </Box>
-                <Typography variant="body2">Price: ${item.price}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
+      {items.length === 0 ? (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 8,
+          color: 'text.secondary'
+        }}>
+          <Typography variant="h6">Your cart is empty</Typography>
+          <Typography variant="body2">Add some products to your cart</Typography>
+        </Box>
+      ) : (
+        <>
+          <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+            {items.filter(item => item.title.toLowerCase().includes(search.toLowerCase())).map((item) => (
+              <Card 
+                key={item.id} 
+                sx={{ 
+                  mb: 2, 
+                  borderRadius: 2,
+                  '&:hover': {
+                    boxShadow: 3
+                  },
+                  transition: 'box-shadow 0.2s'
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start' 
+                  }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                        {item.title}
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        {item.brand} • {item.category}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'gold', mb: 2 }}>
+                        {renderQualityStars(item.rating)}
+                      </Typography>
+                    </Box>
+                    <IconButton 
+                      color="error" 
+                      onClick={() => handleRemoveItem(item.id)}
+                      sx={{ 
+                        '&:hover': { 
+                          bgcolor: 'error.light',
+                          color: 'error.main'
+                        }
+                      }}
+                    >
+                      <RemoveShoppingCart />
+                    </IconButton>
+                  </Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    bgcolor: 'grey.50',
+                    p: 1,
+                    borderRadius: 1
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <IconButton 
+                        onClick={() => handleDecreaseQuantity(item.id)} 
+                        disabled={item.quantity === 1}
+                        size="small"
+                      >
+                        <Remove />
+                      </IconButton>
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          mx: 2,
+                          minWidth: '20px',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {item.quantity}
+                      </Typography>
+                      <IconButton 
+                        onClick={() => handleIncreaseQuantity(item.id)}
+                        size="small"
+                      >
+                        <Add />
+                      </IconButton>
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
 
-      {/* Divider */}
-      <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 3 }} />
 
-      {/* Total Price */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>Total</Typography>
-        <Typography variant="h6">${getTotalPrice()}</Typography>
-      </Box>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 3
+          }}>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>Total</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              ${getTotalPrice()}
+            </Typography>
+          </Box>
 
-      {/* Clear Cart Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-        <Button variant="outlined" color="error" onClick={handleClearCart} sx={{ padding: '10px 20px' }}>
-          Clear Cart
-        </Button>
-      </Box>
-
-      {/* Checkout Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-        <Button variant="contained" color="primary" sx={{ padding: '10px 20px' }}>
-          Proceed to Checkout
-        </Button>
-      </Box>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            gap: 2
+          }}>
+            <Button 
+              variant="outlined" 
+              color="error" 
+              onClick={handleClearCart} 
+              sx={{ 
+                py: 1.5,
+                px: 3,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Clear Cart
+            </Button>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              sx={{ 
+                py: 1.5,
+                px: 3,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Proceed to Checkout
+            </Button>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }
