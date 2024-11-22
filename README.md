@@ -17,7 +17,7 @@ Make sure you have the following installed on your system:
 1. **Clone the repository**  
    Open your terminal and run:
    ```bash
-     git clone <https://github.com/Nirvanjha2004/Intertwine-ass.git>
+     git clone https://github.com/Nirvanjha2004/Intertwine-ass.git
 3. Navigate to the project directory
    ```bash
      cd frontend
